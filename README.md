@@ -6,6 +6,87 @@ This project provides tools to fetch your own boarding pass data and generate QR
 
 > **Disclaimer**: This is for educational and personal use only. Use it to access your own booking data. The API is undocumented and may change at any time.
 
+## Quick Start: Generate Your Boarding Pass QR Code
+
+### 1. Get your session token
+
+1. Open https://www.ryanair.com and log in
+2. Navigate to your trip / booking
+3. Open browser DevTools (F12) → **Network** tab → filter by `Fetch/XHR`
+4. Look for any request to `/api/booking/` or `/api/bookingfa/`
+5. Copy the `x-session-token` header value
+
+> Session tokens expire after ~25 minutes of inactivity. Refresh the page to get a new one.
+
+### 2. Fetch your boarding pass and generate a QR code
+
+```bash
+pip install requests qrcode[pil]
+
+# Fetch boarding pass JSON and save it
+python fetch_boarding_pass.py --session-token <your-token> --output boarding_pass.json
+
+# Fetch and generate QR code images in one step
+python fetch_boarding_pass.py --session-token <your-token> --qr
+```
+
+This calls Ryanair's boarding pass API:
+```
+GET https://www.ryanair.com/api/booking/boarding-pass/v6/en-gb/boardingPass
+```
+
+The response contains a `barcode.payload` field — this is the standard IATA BCBP string that encodes your boarding pass. The QR code is generated directly from this string.
+
+### 3. Or generate from an existing BCBP string
+
+If you already have the barcode payload (e.g. from the Ryanair API response):
+
+```bash
+python generate_qr.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..." boarding_pass.png
+```
+
+### 4. Add to a wallet app
+
+```bash
+pip install cryptography
+
+# Generate .pkpass file (works with WalletPasses, Pass2U, PassAndroid on Android)
+python generate_pkpass.py --boarding-pass boarding_pass.json
+
+# For Apple Wallet (requires Apple Developer certificate):
+python generate_pkpass.py --boarding-pass boarding_pass.json \
+    --cert certificate.pem --key key.pem --wwdr wwdr.pem
+
+# For Google Wallet (requires Google Cloud service account):
+python google_wallet_pass.py --boarding-pass boarding_pass.json \
+    --key service-account.json --issuer-id <your-issuer-id>
+```
+
+### 5. Decode a BCBP barcode
+
+```bash
+python decode_bcbp.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..."
+```
+
+Output:
+```
+============================================================
+  IATA BCBP Boarding Pass Decode
+============================================================
+
+  Passenger:     JOHN DOE
+  PNR:           ABC123
+  Route:         DUB -> LHR
+  Carrier:       FR
+  Flight:        FR1234
+  Date:          2026-03-28 (Julian 087)
+  Class:         Economy (Y)
+  Seat:          15A
+  Sequence:      0042
+```
+
+---
+
 ## How Ryanair Generates Boarding Passes
 
 ### Flow Overview
@@ -226,43 +307,6 @@ The `barcode.payload` follows the [IATA BCBP standard](https://www.iata.org/en/p
 The BCBP uses Julian day-of-year (001-366). To convert:
 - Day `087` in 2026 = **March 28, 2026**
 - Day `086` = March 27, 2026
-
-## Tools
-
-### Fetch Boarding Pass
-
-```bash
-python fetch_boarding_pass.py
-```
-
-Fetches your boarding pass data and generates a QR code image. See [fetch_boarding_pass.py](fetch_boarding_pass.py).
-
-### Decode BCBP Barcode
-
-```bash
-python decode_bcbp.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..."
-```
-
-Parses and displays all fields from a BCBP barcode string. See [decode_bcbp.py](decode_bcbp.py).
-
-### Generate QR Code
-
-```bash
-python generate_qr.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..."
-```
-
-Generates a scannable QR code image from a BCBP payload. See [generate_qr.py](generate_qr.py).
-
-## How to Get Your Session Token
-
-1. Open https://www.ryanair.com and log in
-2. Navigate to your trip / booking
-3. Open browser DevTools (F12) → Network tab
-4. Filter by `Fetch/XHR`
-5. Look for requests to `/api/bookingfa/` or `/api/booking/`
-6. The `x-session-token` header value is your session token
-
-Session tokens are short-lived (~25 minutes of inactivity).
 
 ## Related Resources
 
