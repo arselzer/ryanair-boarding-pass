@@ -6,9 +6,19 @@ This project provides tools to fetch your own boarding pass data and generate QR
 
 > **Disclaimer**: This is for educational and personal use only. Use it to access your own booking data. The API is undocumented and may change at any time.
 
-## Quick Start: Generate Your Boarding Pass QR Code
+## Quick Start: Generate Your Boarding Pass
 
-### 1. Get your session token
+### 1. Install dependencies
+
+```bash
+pip install requests treepoem qrcode[pil] cryptography
+
+# treepoem (for Aztec codes) requires Ghostscript:
+# Ubuntu/Debian: sudo apt install ghostscript
+# macOS:         brew install ghostscript
+```
+
+### 2. Get your session token
 
 1. Open https://www.ryanair.com and log in
 2. Navigate to your trip / booking
@@ -18,11 +28,9 @@ This project provides tools to fetch your own boarding pass data and generate QR
 
 > Session tokens expire after ~25 minutes of inactivity. Refresh the page to get a new one.
 
-### 2. Fetch your boarding pass and generate a QR code
+### 3. Fetch your boarding pass and generate a barcode
 
 ```bash
-pip install requests qrcode[pil]
-
 # Fetch boarding pass JSON and save it
 python fetch_boarding_pass.py --session-token <your-token> --output boarding_pass.json
 
@@ -35,21 +43,23 @@ This calls Ryanair's boarding pass API:
 GET https://www.ryanair.com/api/booking/boarding-pass/v6/en-gb/boardingPass
 ```
 
-The response contains a `barcode.payload` field — this is the standard IATA BCBP string that encodes your boarding pass. The QR code is generated directly from this string.
+The response contains a `barcode.payload` field — this is the standard IATA BCBP string that encodes your boarding pass. The barcode is generated directly from this string.
 
-### 3. Or generate from an existing BCBP string
+### 4. Or generate from an existing BCBP string
 
 If you already have the barcode payload (e.g. from the Ryanair API response):
 
 ```bash
-python generate_qr.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..." boarding_pass.png
+# Aztec code (default — matches what Ryanair uses at the gate)
+python generate_qr.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..."
+
+# QR code (also works, but Ryanair natively uses Aztec)
+python generate_qr.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..." --format qr
 ```
 
-### 4. Add to a wallet app
+### 5. Add to a wallet app
 
 ```bash
-pip install cryptography
-
 # Generate .pkpass file (works with WalletPasses, Pass2U, PassAndroid on Android)
 python generate_pkpass.py --boarding-pass boarding_pass.json
 
@@ -62,7 +72,7 @@ python google_wallet_pass.py --boarding-pass boarding_pass.json \
     --key service-account.json --issuer-id <your-issuer-id>
 ```
 
-### 5. Decode a BCBP barcode
+### 6. Decode a BCBP barcode
 
 ```bash
 python decode_bcbp.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..."
@@ -101,10 +111,10 @@ POST /api/bookingfa/en-gb/graphql  (GetBooking)
 GET /api/booking/boarding-pass/v6/en-gb/boardingPass
         |  Returns: IATA BCBP barcode payload (server-generated)
         v
-App renders barcode.payload as QR/Aztec code
+App renders barcode.payload as Aztec code
 ```
 
-The boarding pass barcode is a standard **IATA BCBP** (Bar Coded Boarding Pass, Resolution 792) string generated server-side. The Ryanair app is essentially rendering this string as a QR code.
+The boarding pass barcode is a standard **IATA BCBP** (Bar Coded Boarding Pass, Resolution 792) string generated server-side. The Ryanair app renders this string as an **Aztec code** (not QR — though both are supported by airport gate scanners).
 
 ### Architecture
 
