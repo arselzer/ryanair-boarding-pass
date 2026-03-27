@@ -11,6 +11,7 @@ Usage:
 
 Requirements:
     pip install treepoem   # for Aztec (recommended — matches Ryanair's format)
+      Also needs Ghostscript: apt install ghostscript / brew install ghostscript
     pip install qrcode[pil]  # for QR code fallback
 """
 
@@ -30,20 +31,30 @@ def generate_aztec(payload: str, output_path: str = "boarding_pass_aztec.png") -
         print("(treepoem requires Ghostscript: apt install ghostscript / brew install ghostscript)")
         sys.exit(1)
 
+    from PIL import Image
+
     img = treepoem.generate_barcode(
         barcode_type="azteccode",
         data=payload,
         options={"format": "full"},
     )
-    # treepoem returns a PIL image; resize for better scanning
-    img = img.convert("L")  # grayscale
-    scale = max(1, 400 // max(img.size))
-    if scale > 1:
-        img = img.resize(
-            (img.size[0] * scale, img.size[1] * scale),
-            resample=0,  # nearest neighbor for sharp edges
-        )
-    img.save(output_path)
+
+    # Convert to pure black/white (1-bit) — critical for scanners
+    img = img.convert("1")
+
+    # Scale up with nearest-neighbor to keep sharp pixel edges
+    scale = 4
+    img = img.resize(
+        (img.size[0] * scale, img.size[1] * scale),
+        resample=Image.NEAREST,
+    )
+
+    # Add white border (quiet zone helps scanners detect the code)
+    border = 40
+    bordered = Image.new("1", (img.size[0] + 2 * border, img.size[1] + 2 * border), 1)
+    bordered.paste(img, (border, border))
+
+    bordered.save(output_path)
     print(f"Aztec code saved to {output_path}")
 
 
