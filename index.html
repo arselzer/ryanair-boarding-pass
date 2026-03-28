@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ryanair Boarding Pass Generator</title>
+    <script src="https://cdn.jsdelivr.net/npm/bwip-js@4"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+        .header {
+            background: #073069;
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .header h1 { font-size: 1.8rem; margin-bottom: 0.5rem; }
+        .header p { color: #ffc800; font-size: 0.95rem; }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 1.5rem;
+        }
+        .step {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .step-number {
+            display: inline-block;
+            background: #073069;
+            color: white;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 32px;
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        .step h2 {
+            display: inline;
+            font-size: 1.2rem;
+            vertical-align: middle;
+        }
+        .step-content { margin-top: 1rem; }
+        .instructions {
+            background: #f8f9fa;
+            border-left: 4px solid #073069;
+            padding: 1rem;
+            margin: 1rem 0;
+            font-size: 0.9rem;
+        }
+        .instructions ol { padding-left: 1.5rem; }
+        .instructions li { margin-bottom: 0.5rem; }
+        .code-block {
+            position: relative;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            border-radius: 6px;
+            padding: 1rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+            margin: 1rem 0;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            background: #073069;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 6px 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+        }
+        .copy-btn:hover { background: #0a4494; }
+        .copy-btn.copied { background: #28a745; }
+        textarea {
+            width: 100%;
+            height: 100px;
+            padding: 0.75rem;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9rem;
+            resize: vertical;
+        }
+        textarea:focus { border-color: #073069; outline: none; }
+        .btn-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            flex-wrap: wrap;
+        }
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-primary {
+            background: #073069;
+            color: white;
+        }
+        .btn-primary:hover { background: #0a4494; }
+        .btn-secondary {
+            background: #ffc800;
+            color: #073069;
+        }
+        .btn-secondary:hover { background: #e6b400; }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #output {
+            text-align: center;
+            margin-top: 1.5rem;
+        }
+        #output canvas {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        #download-btn {
+            display: none;
+            margin-top: 1rem;
+        }
+        #decoded {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
+            font-size: 0.85rem;
+            text-align: left;
+        }
+        #error-msg {
+            display: none;
+            background: #f8d7da;
+            color: #721c24;
+            border-radius: 6px;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .privacy-note {
+            text-align: center;
+            color: #666;
+            font-size: 0.8rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+        .privacy-note strong { color: #073069; }
+        .format-toggle {
+            display: flex;
+            gap: 0;
+            margin-top: 1rem;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 2px solid #073069;
+            width: fit-content;
+        }
+        .format-toggle label {
+            padding: 0.5rem 1.25rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 600;
+            background: white;
+            color: #073069;
+            transition: all 0.2s;
+        }
+        .format-toggle input { display: none; }
+        .format-toggle input:checked + label {
+            background: #073069;
+            color: white;
+        }
+        @media (max-width: 600px) {
+            .container { padding: 1rem; }
+            .step { padding: 1rem; }
+            .btn-row { flex-direction: column; }
+            .btn { width: 100%; text-align: center; }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Ryanair Boarding Pass Generator</h1>
+        <p>Generate your boarding pass barcode without the Ryanair app</p>
+    </div>
+
+    <div class="container">
+        <div class="step">
+            <span class="step-number">1</span>
+            <h2>Get your boarding pass data</h2>
+            <div class="step-content">
+                <div class="instructions">
+                    <ol>
+                        <li>Go to <strong>ryanair.com</strong> and log in to your booking</li>
+                        <li>Navigate to your trip so you can see your flights</li>
+                        <li>Press <strong>F12</strong> to open browser DevTools</li>
+                        <li>Click the <strong>Console</strong> tab</li>
+                        <li>Copy the code below and paste it into the console, then press Enter</li>
+                    </ol>
+                </div>
+                <div class="code-block" id="snippet-code"><button class="copy-btn" onclick="copySnippet()">Copy</button>fetch('/api/booking/boarding-pass/v6/en-gb/boardingPass',{headers:{'client':'desktop','client-version':'1.13.0','x-session-token':document.cookie.match(/fr-session=([^;]+)/)?.[1]||sessionStorage.getItem('sessionToken')||prompt('Paste your x-session-token (find it in Network tab > any /api/ request > Headers):')}}).then(r=>r.json()).then(d=>{if(d.boardingPasses){const bp=d.boardingPasses.map(p=>p.barcode.payload);const msg=bp.join('\n');navigator.clipboard.writeText(bp[0]).then(()=>console.log('Copied to clipboard!')).catch(()=>{});console.log('BOARDING PASS BARCODE(S):');bp.forEach((b,i)=>console.log(`Passenger ${i+1}: ${b}`));prompt('Copy this barcode string and paste it on the boarding pass generator page:',bp[0])}else{console.error('No boarding passes found. Are you checked in?',d)}}).catch(e=>console.error('Error:',e))</div>
+                <p style="margin-top:0.75rem;font-size:0.9rem;color:#666;">This code runs <strong>in your browser</strong> on ryanair.com. It calls Ryanair's boarding pass API and shows you the barcode string. Nothing is sent to any third party.</p>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <h2>Paste your barcode string</h2>
+            <div class="step-content">
+                <textarea id="bcbp-input" placeholder="Paste the BCBP string here, e.g.: M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..."></textarea>
+
+                <div class="format-toggle">
+                    <input type="radio" name="format" id="fmt-aztec" value="aztec" checked>
+                    <label for="fmt-aztec">Aztec (Ryanair default)</label>
+                    <input type="radio" name="format" id="fmt-qr" value="qr">
+                    <label for="fmt-qr">QR Code</label>
+                </div>
+
+                <div class="btn-row">
+                    <button class="btn btn-primary" onclick="generateBarcode()">Generate Barcode</button>
+                    <button class="btn btn-secondary" onclick="decodeBarcode()">Decode Fields</button>
+                </div>
+
+                <div id="error-msg"></div>
+
+                <div id="output">
+                    <canvas id="barcode-canvas"></canvas>
+                    <br>
+                    <button class="btn btn-primary" id="download-btn" onclick="downloadBarcode()">Download Image</button>
+                </div>
+
+                <div id="decoded"></div>
+            </div>
+        </div>
+
+        <div class="privacy-note">
+            <strong>Privacy:</strong> Everything runs in your browser. No data is sent to any server.<br>
+            This page is open source: <a href="https://github.com/arselzer/ryanair-boarding-pass" style="color:#073069">github.com/arselzer/ryanair-boarding-pass</a>
+        </div>
+    </div>
+
+    <script>
+    function copySnippet() {
+        const code = document.getElementById('snippet-code').textContent
+            .replace('Copy', '').trim();
+        navigator.clipboard.writeText(code).then(() => {
+            const btn = document.querySelector('.copy-btn');
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => {
+                btn.textContent = 'Copy';
+                btn.classList.remove('copied');
+            }, 2000);
+        });
+    }
+
+    function getFormat() {
+        return document.querySelector('input[name="format"]:checked').value;
+    }
+
+    function showError(msg) {
+        const el = document.getElementById('error-msg');
+        el.textContent = msg;
+        el.style.display = 'block';
+        setTimeout(() => el.style.display = 'none', 5000);
+    }
+
+    function generateBarcode() {
+        const input = document.getElementById('bcbp-input').value.trim();
+        if (!input) {
+            showError('Please paste a BCBP barcode string first.');
+            return;
+        }
+        if (!input.startsWith('M1')) {
+            showError('Invalid BCBP string. It should start with "M1" followed by the passenger name.');
+            return;
+        }
+
+        const format = getFormat();
+        const canvas = document.getElementById('barcode-canvas');
+
+        try {
+            if (format === 'aztec') {
+                bwipjs.toCanvas(canvas, {
+                    bcid: 'azteccode',
+                    text: input,
+                    scale: 4,
+                    padding: 10,
+                });
+            } else {
+                bwipjs.toCanvas(canvas, {
+                    bcid: 'qrcode',
+                    text: input,
+                    scale: 4,
+                    padding: 10,
+                    eclevel: 'M',
+                });
+            }
+            document.getElementById('download-btn').style.display = 'inline-block';
+            document.getElementById('error-msg').style.display = 'none';
+        } catch (e) {
+            showError('Failed to generate barcode: ' + e.message);
+        }
+    }
+
+    function downloadBarcode() {
+        const canvas = document.getElementById('barcode-canvas');
+        const link = document.createElement('a');
+        const format = getFormat();
+        link.download = `boarding_pass_${format}.png`;
+        link.href = canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    function decodeBarcode() {
+        const input = document.getElementById('bcbp-input').value.trim();
+        if (!input) {
+            showError('Please paste a BCBP barcode string first.');
+            return;
+        }
+        if (input.length < 58) {
+            showError('BCBP string too short (minimum 58 characters).');
+            return;
+        }
+
+        const nameParts = input.substring(2, 22).trim().split('/');
+        const lastName = nameParts[0] || '';
+        const firstName = nameParts[1] || '';
+        const pnr = input.substring(23, 30).trim();
+        const from = input.substring(30, 33);
+        const to = input.substring(33, 36);
+        const carrier = input.substring(36, 39).trim();
+        const flight = input.substring(39, 44).trim();
+        const julian = input.substring(44, 47);
+        const compartment = input.substring(47, 48);
+        const seat = input.substring(48, 52).trim();
+        const sequence = input.substring(52, 57).trim();
+
+        // Julian to date
+        const julianDay = parseInt(julian, 10);
+        const year = new Date().getFullYear();
+        const date = new Date(year, 0, julianDay);
+        const dateStr = date.toISOString().split('T')[0];
+
+        const compartmentNames = {
+            'F': 'First', 'J': 'Business', 'C': 'Business',
+            'W': 'Premium Economy', 'Y': 'Economy', 'B': 'Economy',
+            'H': 'Economy', 'K': 'Economy', 'L': 'Economy',
+            'M': 'Economy', 'N': 'Economy', 'Q': 'Economy',
+            'T': 'Economy', 'V': 'Economy', 'X': 'Economy',
+            'G': 'Economy', 'O': 'Economy',
+        };
+
+        const html = `
+<strong>Passenger:</strong> ${firstName} ${lastName}
+<strong>PNR:</strong> ${pnr}
+<strong>Route:</strong> ${from} → ${to}
+<strong>Flight:</strong> ${carrier}${flight}
+<strong>Date:</strong> ${dateStr} (Julian ${julian})
+<strong>Class:</strong> ${compartmentNames[compartment] || 'Unknown'} (${compartment})
+<strong>Seat:</strong> ${seat}
+<strong>Sequence:</strong> ${sequence}
+        `.trim();
+
+        const el = document.getElementById('decoded');
+        el.innerHTML = html;
+        el.style.display = 'block';
+        document.getElementById('error-msg').style.display = 'none';
+    }
+
+    // Auto-generate when format changes
+    document.querySelectorAll('input[name="format"]').forEach(r => {
+        r.addEventListener('change', () => {
+            const input = document.getElementById('bcbp-input').value.trim();
+            if (input) generateBarcode();
+        });
+    });
+    </script>
+</body>
+</html>
