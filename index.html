@@ -66,6 +66,7 @@
             color: #d4d4d4;
             border-radius: 6px;
             padding: 1rem;
+            padding-right: 5rem;
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 0.85rem;
             overflow-x: auto;
@@ -218,8 +219,8 @@
                         <li>Copy the code below and paste it into the console, then press Enter</li>
                     </ol>
                 </div>
-                <div class="code-block" id="snippet-code"><button class="copy-btn" onclick="copySnippet()">Copy</button>fetch('/api/booking/boarding-pass/v6/en-gb/boardingPass',{headers:{'client':'desktop','client-version':'1.13.0','x-session-token':document.cookie.match(/fr-session=([^;]+)/)?.[1]||sessionStorage.getItem('sessionToken')||prompt('Paste your x-session-token (find it in Network tab > any /api/ request > Headers):')}}).then(r=>r.json()).then(d=>{if(d.boardingPasses){const bp=d.boardingPasses.map(p=>p.barcode.payload);const msg=bp.join('\n');navigator.clipboard.writeText(bp[0]).then(()=>console.log('Copied to clipboard!')).catch(()=>{});console.log('BOARDING PASS BARCODE(S):');bp.forEach((b,i)=>console.log(`Passenger ${i+1}: ${b}`));prompt('Copy this barcode string and paste it on the boarding pass generator page:',bp[0])}else{console.error('No boarding passes found. Are you checked in?',d)}}).catch(e=>console.error('Error:',e))</div>
-                <p style="margin-top:0.75rem;font-size:0.9rem;color:#666;">This code runs <strong>in your browser</strong> on ryanair.com. It calls Ryanair's boarding pass API and shows you the barcode string. Nothing is sent to any third party.</p>
+                <div class="code-block" id="snippet-code"><button class="copy-btn" onclick="copySnippet()">Copy</button>(async()=>{function f(){for(let i=0;i&lt;sessionStorage.length;i++){const k=sessionStorage.key(i);try{const v=JSON.parse(sessionStorage.getItem(k));if(v&amp;&amp;v.sessionToken)return v.sessionToken}catch{}}for(let i=0;i&lt;sessionStorage.length;i++){const k=sessionStorage.key(i),v=sessionStorage.getItem(k);if(/^[a-z0-9]{20,30}$/.test(v))return v}const m=document.cookie.match(/(?:fr-session|ryanair-session)=([^;]+)/);if(m)return m[1];try{const el=document.querySelector('[ng-version]');if(el){const ng=el.__ngContext__||el.__ng_context__;if(ng){const s=JSON.stringify(ng);const t=s.match(/"sessionToken":"([a-z0-9]{20,30})"/);if(t)return t[1]}}}catch{}return null}const t=f();if(!t){console.error('Could not find session token automatically.');console.log('Go to Network tab, find any request to /api/, copy the x-session-token header value.');const manual=prompt('Paste your x-session-token:');if(!manual)return;var token=manual}else{var token=t;console.log('Session token found automatically!')}const r=await fetch('/api/booking/boarding-pass/v6/en-gb/boardingPass',{headers:{'client':'desktop','client-version':'1.13.0','x-session-token':token}});const d=await r.json();if(d.boardingPasses){const bp=d.boardingPasses.map(p=>p.barcode.payload);try{await navigator.clipboard.writeText(bp[0]);console.log('Copied to clipboard!')}catch{}console.log('BOARDING PASS BARCODE(S):');bp.forEach((b,i)=>console.log('Passenger '+(i+1)+': '+b));prompt('Copy this barcode string and paste it on the generator page:',bp[0])}else{console.error('No boarding passes found. Make sure you have checked in.',d)}})()</div>
+                <p style="margin-top:0.75rem;font-size:0.9rem;color:#666;">This code runs <strong>in your browser</strong> on ryanair.com. It automatically finds your session token from the page, fetches the boarding pass, and shows the barcode string. Nothing is sent to any third party.</p>
             </div>
         </div>
 
@@ -261,9 +262,9 @@
 
     <script>
     function copySnippet() {
-        const code = document.getElementById('snippet-code').textContent
-            .replace('Copy', '').trim();
-        navigator.clipboard.writeText(code).then(() => {
+        // Get the raw snippet from the data attribute, not the HTML-escaped display text
+        const snippet = document.getElementById('snippet-code').dataset.snippet;
+        navigator.clipboard.writeText(snippet).then(() => {
             const btn = document.querySelector('.copy-btn');
             btn.textContent = 'Copied!';
             btn.classList.add('copied');
@@ -273,6 +274,9 @@
             }, 2000);
         });
     }
+
+    // Store the actual JS snippet (unescaped) in a data attribute for copying
+    document.getElementById('snippet-code').dataset.snippet = `(async()=>{function f(){for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);try{const v=JSON.parse(sessionStorage.getItem(k));if(v&&v.sessionToken)return v.sessionToken}catch{}}for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i),v=sessionStorage.getItem(k);if(/^[a-z0-9]{20,30}$/.test(v))return v}const m=document.cookie.match(/(?:fr-session|ryanair-session)=([^;]+)/);if(m)return m[1];try{const el=document.querySelector('[ng-version]');if(el){const ng=el.__ngContext__||el.__ng_context__;if(ng){const s=JSON.stringify(ng);const t=s.match(/"sessionToken":"([a-z0-9]{20,30})"/);if(t)return t[1]}}}catch{}return null}const t=f();if(!t){console.error('Could not find session token automatically.');console.log('Go to Network tab, find any request to /api/, copy the x-session-token header value.');const manual=prompt('Paste your x-session-token:');if(!manual)return;var token=manual}else{var token=t;console.log('Session token found automatically!')}const r=await fetch('/api/booking/boarding-pass/v6/en-gb/boardingPass',{headers:{'client':'desktop','client-version':'1.13.0','x-session-token':token}});const d=await r.json();if(d.boardingPasses){const bp=d.boardingPasses.map(p=>p.barcode.payload);try{await navigator.clipboard.writeText(bp[0]);console.log('Copied to clipboard!')}catch{}console.log('BOARDING PASS BARCODE(S):');bp.forEach((b,i)=>console.log('Passenger '+(i+1)+': '+b));prompt('Copy this barcode string and paste it on the generator page:',bp[0])}else{console.error('No boarding passes found. Make sure you have checked in.',d)}})()`;
 
     function getFormat() {
         return document.querySelector('input[name="format"]:checked').value;
@@ -374,7 +378,7 @@
         const html = `
 <strong>Passenger:</strong> ${firstName} ${lastName}
 <strong>PNR:</strong> ${pnr}
-<strong>Route:</strong> ${from} → ${to}
+<strong>Route:</strong> ${from} \u2192 ${to}
 <strong>Flight:</strong> ${carrier}${flight}
 <strong>Date:</strong> ${dateStr} (Julian ${julian})
 <strong>Class:</strong> ${compartmentNames[compartment] || 'Unknown'} (${compartment})
