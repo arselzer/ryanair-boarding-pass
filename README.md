@@ -57,6 +57,8 @@ python generate_qr.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 .
 python generate_qr.py "M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..." --format qr
 ```
 
+The GitHub Pages generator accepts multiple pasted boarding passes separated by a line containing `---`. The browser snippet copies every available pass in that format, including flight, passenger, seat, and time metadata when Ryanair returns it. The page can render either code-only images or wallet-style cards, and each download filename includes the flight number and passenger name.
+
 ### 5. Add to a wallet app
 
 ```bash

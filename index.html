@@ -88,9 +88,10 @@
         }
         .copy-btn:hover { background: #0f766e; }
         .copy-btn.copied { background: #16a34a; }
+        .snippet-text { display: block; }
         textarea {
             width: 100%;
-            height: 100px;
+            height: 140px;
             padding: 0.75rem;
             border: 2px solid #ddd;
             border-radius: 6px;
@@ -129,18 +130,46 @@
             cursor: not-allowed;
         }
         #output {
-            text-align: center;
             margin-top: 1.5rem;
         }
-        #output canvas {
+        .barcode-result {
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            padding: 1rem;
+            margin-bottom: 1rem;
+            text-align: left;
+        }
+        .result-header {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .result-title {
+            font-weight: 700;
+            font-size: 1rem;
+            color: #1a1a2e;
+        }
+        .result-meta {
+            color: #64748b;
+            font-size: 0.85rem;
+            margin-top: 0.15rem;
+        }
+        .canvas-wrap {
+            text-align: center;
+        }
+        .canvas-wrap canvas {
+            max-width: 100%;
+            height: auto;
             background: white;
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         }
-        #download-btn {
-            display: none;
-            margin-top: 1rem;
+        .canvas-wrap canvas.wallet-canvas {
+            padding: 0;
         }
         #decoded {
             display: none;
@@ -151,6 +180,7 @@
             font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
             font-size: 0.85rem;
             text-align: left;
+            white-space: pre-wrap;
         }
         #error-msg {
             display: none;
@@ -171,7 +201,7 @@
         .format-toggle {
             display: flex;
             gap: 0;
-            margin-top: 1rem;
+            margin-top: 0.35rem;
             border-radius: 6px;
             overflow: hidden;
             border: 2px solid #0d9488;
@@ -191,9 +221,24 @@
             background: #0d9488;
             color: white;
         }
+        .options-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem 1.25rem;
+            align-items: flex-start;
+            margin-top: 1rem;
+        }
+        .option-label {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
         @media (max-width: 600px) {
             .container { padding: 1rem; }
             .step { padding: 1rem; }
+            .result-header { flex-direction: column; }
             .btn-row { flex-direction: column; }
             .btn { width: 100%; text-align: center; }
         }
@@ -219,36 +264,46 @@
                         <li>Copy the code below and paste it into the console, then press Enter</li>
                     </ol>
                 </div>
-                <div class="code-block" id="snippet-code"><button class="copy-btn" onclick="copySnippet()">Copy</button>(async()=>{function f(){for(let i=0;i&lt;sessionStorage.length;i++){const k=sessionStorage.key(i);try{const v=JSON.parse(sessionStorage.getItem(k));if(v&amp;&amp;v.sessionToken)return v.sessionToken}catch{}}for(let i=0;i&lt;sessionStorage.length;i++){const k=sessionStorage.key(i),v=sessionStorage.getItem(k);if(/^[a-z0-9]{20,30}$/.test(v))return v}const m=document.cookie.match(/(?:fr-session|ryanair-session)=([^;]+)/);if(m)return m[1];try{const el=document.querySelector('[ng-version]');if(el){const ng=el.__ngContext__||el.__ng_context__;if(ng){const s=JSON.stringify(ng);const t=s.match(/"sessionToken":"([a-z0-9]{20,30})"/);if(t)return t[1]}}}catch{}return null}const t=f();if(!t){console.error('Could not find session token automatically.');console.log('Go to Network tab, find any request to /api/, copy the x-session-token header value.');const manual=prompt('Paste your x-session-token:');if(!manual)return;var token=manual}else{var token=t;console.log('Session token found automatically!')}const r=await fetch('/api/booking/boarding-pass/v6/en-gb/boardingPass',{headers:{'client':'desktop','client-version':'1.13.0','x-session-token':token}});const d=await r.json();if(d.boardingPasses){const bp=d.boardingPasses.map(p=>p.barcode.payload);try{await navigator.clipboard.writeText(bp[0]);console.log('Copied to clipboard!')}catch{}console.log('BOARDING PASS BARCODE(S):');bp.forEach((b,i)=>console.log('Passenger '+(i+1)+': '+b));prompt('Copy this barcode string and paste it on the generator page:',bp[0])}else{console.error('No boarding passes found. Make sure you have checked in.',d)}})()</div>
-                <p style="margin-top:0.75rem;font-size:0.9rem;color:#666;">This code runs <strong>in your browser</strong> on ryanair.com. It automatically finds your session token from the page, fetches the boarding pass, and shows the barcode string. Nothing is sent to any third party.</p>
+                <div class="code-block" id="snippet-code"><button class="copy-btn" onclick="copySnippet()">Copy</button><span class="snippet-text" id="snippet-text"></span></div>
+                <p style="margin-top:0.75rem;font-size:0.9rem;color:#666;">This code runs <strong>in your browser</strong> on ryanair.com. It automatically finds your session token from the page, fetches every available boarding pass, and copies them separated by <strong>---</strong>. Nothing is sent to any third party.</p>
             </div>
         </div>
 
         <div class="step">
             <span class="step-number">2</span>
-            <h2>Paste your barcode string</h2>
+            <h2>Paste your boarding pass data</h2>
             <div class="step-content">
-                <textarea id="bcbp-input" placeholder="Paste the BCBP string here, e.g.: M1DOE/JOHN            ABC123 DUBLHRFR 1234 087Y015A0042 ..."></textarea>
+                <textarea id="bcbp-input" placeholder="Paste the copied boarding pass bundle here. You can also paste one or more BCBP strings separated by ---"></textarea>
 
-                <div class="format-toggle">
-                    <input type="radio" name="format" id="fmt-aztec" value="aztec" checked>
-                    <label for="fmt-aztec">Aztec (default)</label>
-                    <input type="radio" name="format" id="fmt-qr" value="qr">
-                    <label for="fmt-qr">QR Code</label>
+                <div class="options-row">
+                    <div>
+                        <div class="option-label">Barcode</div>
+                        <div class="format-toggle">
+                            <input type="radio" name="format" id="fmt-aztec" value="aztec" checked>
+                            <label for="fmt-aztec">Aztec</label>
+                            <input type="radio" name="format" id="fmt-qr" value="qr">
+                            <label for="fmt-qr">QR Code</label>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="option-label">Image</div>
+                        <div class="format-toggle">
+                            <input type="radio" name="image-style" id="style-code" value="code" checked>
+                            <label for="style-code">Code only</label>
+                            <input type="radio" name="image-style" id="style-wallet" value="wallet">
+                            <label for="style-wallet">Wallet card</label>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="btn-row">
-                    <button class="btn btn-primary" onclick="generateBarcode()">Generate Barcode</button>
+                    <button class="btn btn-primary" onclick="generateBarcode()">Generate Images</button>
                     <button class="btn btn-secondary" onclick="decodeBarcode()">Decode Fields</button>
                 </div>
 
                 <div id="error-msg"></div>
 
-                <div id="output">
-                    <canvas id="barcode-canvas"></canvas>
-                    <br>
-                    <button class="btn btn-primary" id="download-btn" onclick="downloadBarcode()">Download Image</button>
-                </div>
+                <div id="output"></div>
 
                 <div id="decoded"></div>
             </div>
@@ -261,6 +316,9 @@
     </div>
 
     <script>
+    const RYANAIR_SNIPPET = `(async()=>{function f(){for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);try{const v=JSON.parse(sessionStorage.getItem(k));if(v&&v.sessionToken)return v.sessionToken}catch{}}for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i),v=sessionStorage.getItem(k);if(/^[a-z0-9]{20,30}$/.test(v))return v}const m=document.cookie.match(/(?:fr-session|ryanair-session)=([^;]+)/);if(m)return m[1];try{const el=document.querySelector('[ng-version]');if(el){const ng=el.__ngContext__||el.__ng_context__;if(ng){const s=JSON.stringify(ng);const t=s.match(/"sessionToken":"([a-z0-9]{20,30})"/);if(t)return t[1]}}}catch{}return null}const t=f();if(!t){console.error('Could not find session token automatically.');console.log('Go to Network tab, find any request to /api/, copy the x-session-token header value.');const manual=prompt('Paste your x-session-token:');if(!manual)return;var token=manual}else{var token=t;console.log('Session token found automatically!')}const r=await fetch('/api/booking/boarding-pass/v6/en-gb/boardingPass',{headers:{'client':'desktop','client-version':'1.13.0','x-session-token':token}});const d=await r.json();if(d.boardingPasses&&d.boardingPasses.length){const passes=d.boardingPasses.map(p=>({payload:p&&p.barcode&&p.barcode.payload||'',pnr:d.pnr||'',name:p.name||{},flightNumber:p.flightNumber||'',carrierCode:p.carrierCode||'',departure:p.departure||{},arrival:p.arrival||{},seat:p.seat||{},sequence:p.sequence,boardingTime:p.boardingTime||'',gateCloseTime:p.gateCloseTime,operatedBy:p.operatedBy||'',paxType:p.paxType||''})).filter(p=>p.payload);const text=passes.map(p=>JSON.stringify(p)).join('\\n---\\n');try{await navigator.clipboard.writeText(text);console.log('Copied '+passes.length+' boarding pass(es) to clipboard, separated by ---')}catch{}console.log('BOARDING PASS DATA (paste all of this on the generator page):\\n'+text);prompt('Copy all boarding passes and paste them on the generator page:',text)}else{console.error('No boarding passes found. Make sure you have checked in.',d)}})()`;
+    const generatedCanvases = [];
+
     function copySnippet() {
         const snippet = document.getElementById('snippet-code').dataset.snippet;
         navigator.clipboard.writeText(snippet).then(() => {
@@ -274,10 +332,15 @@
         });
     }
 
-    document.getElementById('snippet-code').dataset.snippet = `(async()=>{function f(){for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i);try{const v=JSON.parse(sessionStorage.getItem(k));if(v&&v.sessionToken)return v.sessionToken}catch{}}for(let i=0;i<sessionStorage.length;i++){const k=sessionStorage.key(i),v=sessionStorage.getItem(k);if(/^[a-z0-9]{20,30}$/.test(v))return v}const m=document.cookie.match(/(?:fr-session|ryanair-session)=([^;]+)/);if(m)return m[1];try{const el=document.querySelector('[ng-version]');if(el){const ng=el.__ngContext__||el.__ng_context__;if(ng){const s=JSON.stringify(ng);const t=s.match(/"sessionToken":"([a-z0-9]{20,30})"/);if(t)return t[1]}}}catch{}return null}const t=f();if(!t){console.error('Could not find session token automatically.');console.log('Go to Network tab, find any request to /api/, copy the x-session-token header value.');const manual=prompt('Paste your x-session-token:');if(!manual)return;var token=manual}else{var token=t;console.log('Session token found automatically!')}const r=await fetch('/api/booking/boarding-pass/v6/en-gb/boardingPass',{headers:{'client':'desktop','client-version':'1.13.0','x-session-token':token}});const d=await r.json();if(d.boardingPasses){const bp=d.boardingPasses.map(p=>p.barcode.payload);try{await navigator.clipboard.writeText(bp[0]);console.log('Copied to clipboard!')}catch{}console.log('BOARDING PASS BARCODE(S):');bp.forEach((b,i)=>console.log('Passenger '+(i+1)+': '+b));prompt('Copy this barcode string and paste it on the generator page:',bp[0])}else{console.error('No boarding passes found. Make sure you have checked in.',d)}})()`;
+    document.getElementById('snippet-code').dataset.snippet = RYANAIR_SNIPPET;
+    document.getElementById('snippet-text').textContent = RYANAIR_SNIPPET;
 
     function getFormat() {
         return document.querySelector('input[name="format"]:checked').value;
+    }
+
+    function getImageStyle() {
+        return document.querySelector('input[name="image-style"]:checked').value;
     }
 
     function showError(msg) {
@@ -287,81 +350,137 @@
         setTimeout(() => el.style.display = 'none', 5000);
     }
 
-    function generateBarcode() {
-        const input = document.getElementById('bcbp-input').value.trim();
-        if (!input) {
-            showError('Please paste a BCBP barcode string first.');
-            return;
-        }
-        if (!input.startsWith('M1')) {
-            showError('Invalid BCBP string. It should start with "M1" followed by the passenger name.');
-            return;
-        }
-
-        const format = getFormat();
-        const canvas = document.getElementById('barcode-canvas');
-
+    function parseJson(text) {
         try {
-            if (format === 'aztec') {
-                bwipjs.toCanvas(canvas, {
-                    bcid: 'azteccode',
-                    text: input,
-                    scale: 4,
-                    padding: 10,
-                });
-            } else {
-                bwipjs.toCanvas(canvas, {
-                    bcid: 'qrcode',
-                    text: input,
-                    scale: 4,
-                    padding: 10,
-                    eclevel: 'M',
-                });
-            }
-            document.getElementById('download-btn').style.display = 'inline-block';
-            document.getElementById('error-msg').style.display = 'none';
-        } catch (e) {
-            showError('Failed to generate barcode: ' + e.message);
+            return JSON.parse(text);
+        } catch {
+            return null;
         }
     }
 
-    function downloadBarcode() {
-        const canvas = document.getElementById('barcode-canvas');
-        const link = document.createElement('a');
-        const format = getFormat();
-        link.download = `boarding_pass_${format}.png`;
-        link.href = canvas.toDataURL('image/png');
-        link.click();
+    function passesFromParsed(value, pnr) {
+        if (!value) return [];
+        if (Array.isArray(value)) {
+            return value.map((item, index) => normalizePass(item, index, pnr)).filter(Boolean);
+        }
+        if (value.boardingPasses && Array.isArray(value.boardingPasses)) {
+            return passesFromParsed(value.boardingPasses, value.pnr || pnr);
+        }
+        const normalized = normalizePass(value, 0, pnr);
+        return normalized ? [normalized] : [];
     }
 
-    function decodeBarcode() {
-        const input = document.getElementById('bcbp-input').value.trim();
-        if (!input) {
-            showError('Please paste a BCBP barcode string first.');
-            return;
-        }
-        if (input.length < 58) {
-            showError('BCBP string too short (minimum 58 characters).');
-            return;
+    function extractBoardingPasses(input) {
+        const raw = input.trim();
+        if (!raw) return [];
+
+        const parsed = parseJson(raw);
+        const parsedPasses = passesFromParsed(parsed);
+        if (parsedPasses.length) return parsedPasses;
+
+        const chunks = raw.split(/\n\s*-{3,}\s*\n/).map(chunk => chunk.trim()).filter(Boolean);
+        if (chunks.length > 1) {
+            return chunks.flatMap((chunk, index) => {
+                const chunkParsed = parseJson(chunk);
+                const fromJson = passesFromParsed(chunkParsed);
+                if (fromJson.length) return fromJson;
+                const payload = payloadFromText(chunk);
+                return payload ? [normalizePass(payload, index)] : [];
+            });
         }
 
-        const nameParts = input.substring(2, 22).trim().split('/');
+        const linePasses = raw.split(/\r?\n/).flatMap((line, index) => {
+            const trimmed = line.trim();
+            if (!trimmed) return [];
+            const prefixed = trimmed.match(/^Passenger\s+\d+:\s*(M\d.*)$/i);
+            const payload = prefixed ? prefixed[1] : (/^M\d/.test(trimmed) ? trimmed : '');
+            return payload ? [normalizePass(payload, index)] : [];
+        }).filter(Boolean);
+        if (linePasses.length) return linePasses;
+
+        const payload = payloadFromText(raw);
+        return payload ? [normalizePass(payload, 0)].filter(Boolean) : [];
+    }
+
+    function payloadFromText(text) {
+        const trimmed = text.trim();
+        if (/^M\d/.test(trimmed)) return trimmed;
+        const match = trimmed.match(/(M\d[A-Z0-9/\s>.-]{56,})/);
+        return match ? match[1].trim() : '';
+    }
+
+    function normalizePass(source, index, pnr) {
+        if (source == null) return null;
+        const isString = typeof source === 'string';
+        const payload = isString
+            ? source.trim()
+            : String(source.payload || (source.barcode && source.barcode.payload) || '').trim();
+        if (!payload) return null;
+
+        const departure = isString ? {} : (source.departure || {});
+        const arrival = isString ? {} : (source.arrival || {});
+        const seatObject = isString ? {} : (source.seat || {});
+        const yearHint = yearFromDate(departure.date || (!isString && source.departureDate));
+        const decoded = decodePayload(payload, yearHint);
+        const name = isString ? {} : (source.name || {});
+        const firstName = name.first || (!isString && source.firstName) || decoded.firstName || '';
+        const lastName = name.last || (!isString && source.lastName) || decoded.lastName || '';
+        const passengerName = [firstName, lastName].filter(Boolean).join(' ') || (!isString && source.passengerName) || decoded.passengerName || `Passenger ${index + 1}`;
+        const flightNumber = (!isString && (source.flightNumber || source.flight)) || decoded.flight || '';
+        const from = departure.code || (!isString && source.from) || decoded.from || '';
+        const to = arrival.code || (!isString && source.to) || decoded.to || '';
+        const seat = seatObject.designator || (!isString && source.seatNumber) || decoded.seat || '';
+
+        return {
+            payload,
+            passengerName,
+            firstName,
+            lastName,
+            pnr: (!isString && source.pnr) || pnr || decoded.pnr || '',
+            flightNumber,
+            from,
+            to,
+            departureName: departure.name || '',
+            arrivalName: arrival.name || '',
+            departureDate: departure.date || (!isString && source.departureDate) || '',
+            arrivalDate: arrival.date || (!isString && source.arrivalDate) || '',
+            boardingTime: (!isString && source.boardingTime) || '',
+            gateCloseTime: !isString ? source.gateCloseTime : '',
+            seat,
+            seatLocation: seatObject.location || '',
+            sequence: (!isString && source.sequence) || decoded.sequence || '',
+            className: decoded.className || '',
+            flightDate: decoded.flightDate || '',
+            index,
+        };
+    }
+
+    function yearFromDate(value) {
+        const date = value ? new Date(value) : null;
+        return date && !Number.isNaN(date.getTime()) ? date.getFullYear() : null;
+    }
+
+    function decodePayload(payload, yearHint) {
+        const text = payload.trim();
+        if (text.length < 58 || !/^M\d/.test(text)) {
+            return {};
+        }
+
+        const nameParts = text.substring(2, 22).trim().split('/');
         const lastName = nameParts[0] || '';
         const firstName = nameParts[1] || '';
-        const pnr = input.substring(23, 30).trim();
-        const from = input.substring(30, 33);
-        const to = input.substring(33, 36);
-        const carrier = input.substring(36, 39).trim();
-        const flight = input.substring(39, 44).trim();
-        const julian = input.substring(44, 47);
-        const compartment = input.substring(47, 48);
-        const seat = input.substring(48, 52).trim();
-        const sequence = input.substring(52, 57).trim();
-
+        const pnr = text.substring(23, 30).trim();
+        const from = text.substring(30, 33).trim();
+        const to = text.substring(33, 36).trim();
+        const carrier = text.substring(36, 39).trim();
+        const flightNo = text.substring(39, 44).trim();
+        const julian = text.substring(44, 47);
+        const compartment = text.substring(47, 48);
+        const seat = text.substring(48, 52).trim();
+        const sequence = text.substring(52, 57).trim();
+        const year = yearHint || new Date().getFullYear();
         const julianDay = parseInt(julian, 10);
-        const year = new Date().getFullYear();
-        const date = new Date(year, 0, julianDay);
-        const dateStr = date.toISOString().split('T')[0];
+        const date = Number.isNaN(julianDay) ? null : new Date(year, 0, julianDay);
 
         const compartmentNames = {
             'F': 'First', 'J': 'Business', 'C': 'Business',
@@ -372,24 +491,307 @@
             'G': 'Economy', 'O': 'Economy',
         };
 
-        const html = `
-<strong>Passenger:</strong> ${firstName} ${lastName}
-<strong>PNR:</strong> ${pnr}
-<strong>Route:</strong> ${from} \u2192 ${to}
-<strong>Flight:</strong> ${carrier}${flight}
-<strong>Date:</strong> ${dateStr} (Julian ${julian})
-<strong>Class:</strong> ${compartmentNames[compartment] || 'Unknown'} (${compartment})
-<strong>Seat:</strong> ${seat}
-<strong>Sequence:</strong> ${sequence}
-        `.trim();
+        return {
+            firstName,
+            lastName,
+            passengerName: [firstName, lastName].filter(Boolean).join(' '),
+            pnr,
+            from,
+            to,
+            carrier,
+            flightNumber: flightNo,
+            flight: `${carrier}${flightNo}`,
+            julian,
+            flightDate: date ? calendarDate(date) : '',
+            className: compartmentNames[compartment] || '',
+            seat,
+            sequence,
+        };
+    }
+
+    function generateBarcode() {
+        const passes = extractBoardingPasses(document.getElementById('bcbp-input').value);
+        if (!passes.length) {
+            showError('Paste one or more boarding pass records or BCBP strings first.');
+            return;
+        }
+
+        const format = getFormat();
+        const imageStyle = getImageStyle();
+        const output = document.getElementById('output');
+        output.textContent = '';
+        generatedCanvases.length = 0;
+
+        try {
+            passes.forEach((pass, index) => renderPass(output, pass, index, format, imageStyle));
+            document.getElementById('error-msg').style.display = 'none';
+        } catch (e) {
+            showError('Failed to generate barcode: ' + e.message);
+        }
+    }
+
+    function renderPass(output, pass, index, format, imageStyle) {
+        const wrapper = document.createElement('section');
+        wrapper.className = 'barcode-result';
+
+        const header = document.createElement('div');
+        header.className = 'result-header';
+
+        const titleBlock = document.createElement('div');
+        const title = document.createElement('div');
+        title.className = 'result-title';
+        title.textContent = `${pass.flightNumber || 'Flight'} - ${pass.passengerName}`;
+        const meta = document.createElement('div');
+        meta.className = 'result-meta';
+        meta.textContent = [routeText(pass), pass.seat ? `Seat ${pass.seat}` : '', timeSummary(pass)].filter(Boolean).join(' | ');
+        titleBlock.append(title, meta);
+
+        const download = document.createElement('button');
+        download.className = 'btn btn-primary';
+        download.type = 'button';
+        download.textContent = 'Download Image';
+        download.addEventListener('click', () => downloadCanvas(index));
+
+        header.append(titleBlock, download);
+
+        const canvasWrap = document.createElement('div');
+        canvasWrap.className = 'canvas-wrap';
+        const canvas = document.createElement('canvas');
+        if (imageStyle === 'wallet') {
+            canvas.className = 'wallet-canvas';
+            const codeCanvas = createCodeCanvas(pass.payload, format, 4);
+            drawWalletCard(canvas, codeCanvas, pass, format);
+        } else {
+            drawCodeOnly(canvas, pass.payload, format);
+        }
+        canvasWrap.appendChild(canvas);
+        wrapper.append(header, canvasWrap);
+        output.appendChild(wrapper);
+        generatedCanvases[index] = {
+            canvas,
+            filename: buildFilename(pass, format, imageStyle, index),
+        };
+    }
+
+    function createCodeCanvas(payload, format, scale) {
+        const canvas = document.createElement('canvas');
+        bwipjs.toCanvas(canvas, barcodeOptions(payload, format, scale));
+        return canvas;
+    }
+
+    function drawCodeOnly(canvas, payload, format) {
+        bwipjs.toCanvas(canvas, barcodeOptions(payload, format, 4));
+    }
+
+    function barcodeOptions(payload, format, scale) {
+        const options = {
+            bcid: format === 'aztec' ? 'azteccode' : 'qrcode',
+            text: payload,
+            scale,
+            padding: 10,
+        };
+        if (format === 'qr') options.eclevel = 'M';
+        return options;
+    }
+
+    function drawWalletCard(canvas, codeCanvas, pass, format) {
+        const width = 900;
+        const height = 1420;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        ctx.fillStyle = '#eef2f7';
+        ctx.fillRect(0, 0, width, height);
+        drawRoundedRect(ctx, 48, 40, width - 96, height - 80, 36, '#073069');
+
+        ctx.fillStyle = '#ffc800';
+        ctx.fillRect(48, 210, width - 96, 8);
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 34px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText('RYANAIR', 88, 110);
+        ctx.font = '600 24px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText(pass.flightNumber || 'BOARDING PASS', 88, 154);
+
+        ctx.textAlign = 'center';
+        ctx.font = '800 90px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        fitText(ctx, pass.from || '---', 270, 315, 240);
+        fitText(ctx, pass.to || '---', 630, 315, 240);
+        ctx.font = '700 46px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText('TO', 450, 305);
+
+        ctx.textAlign = 'left';
+        drawInfo(ctx, 'PASSENGER', pass.passengerName, 88, 405, 430);
+        drawInfo(ctx, 'SEAT', pass.seat || '-', 575, 405, 220);
+        drawInfo(ctx, 'DATE', pass.flightDate || dateOnly(pass.departureDate) || '-', 88, 515, 300);
+        drawInfo(ctx, 'SEQ', String(pass.sequence || '-'), 405, 515, 160);
+        drawInfo(ctx, 'PNR', pass.pnr || '-', 575, 515, 220);
+
+        const times = walletTimes(pass);
+        let y = 625;
+        times.forEach(item => {
+            drawInfo(ctx, item.label, item.value, 88, y, 700);
+            y += 96;
+        });
+
+        const panelTop = Math.max(820, y + 20);
+        const panelHeight = height - panelTop - 130;
+        drawRoundedRect(ctx, 88, panelTop, width - 176, panelHeight, 28, '#ffffff');
+
+        const maxCodeWidth = width - 260;
+        const maxCodeHeight = panelHeight - 110;
+        const ratio = Math.min(maxCodeWidth / codeCanvas.width, maxCodeHeight / codeCanvas.height);
+        const drawWidth = codeCanvas.width * ratio;
+        const drawHeight = codeCanvas.height * ratio;
+        const x = (width - drawWidth) / 2;
+        const codeY = panelTop + 50 + (maxCodeHeight - drawHeight) / 2;
+        ctx.drawImage(codeCanvas, x, codeY, drawWidth, drawHeight);
+
+        ctx.fillStyle = '#073069';
+        ctx.font = '700 22px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(format === 'aztec' ? 'AZTEC BOARDING CODE' : 'QR BOARDING CODE', width / 2, panelTop + panelHeight - 34);
+
+        ctx.textAlign = 'left';
+    }
+
+    function drawInfo(ctx, label, value, x, y, maxWidth) {
+        ctx.fillStyle = '#ffc800';
+        ctx.font = '700 20px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText(label, x, y);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 34px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        fitText(ctx, value || '-', x, y + 42, maxWidth);
+    }
+
+    function fitText(ctx, text, x, y, maxWidth) {
+        const value = String(text || '');
+        const font = ctx.font;
+        let size = parseInt(font.match(/\d+/)[0], 10);
+        while (ctx.measureText(value).width > maxWidth && size > 16) {
+            size -= 2;
+            ctx.font = font.replace(/\d+px/, `${size}px`);
+        }
+        ctx.fillText(value, x, y);
+        ctx.font = font;
+    }
+
+    function drawRoundedRect(ctx, x, y, width, height, radius, fillStyle) {
+        ctx.beginPath();
+        ctx.moveTo(x + radius, y);
+        ctx.lineTo(x + width - radius, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        ctx.lineTo(x + radius, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        ctx.lineTo(x, y + radius);
+        ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.closePath();
+        ctx.fillStyle = fillStyle;
+        ctx.fill();
+    }
+
+    function walletTimes(pass) {
+        const items = [];
+        if (pass.boardingTime) items.push({ label: 'BOARDING', value: formatDateTime(pass.boardingTime) });
+        if (pass.departureDate) items.push({ label: 'DEPARTS', value: formatDateTime(pass.departureDate) });
+        if (pass.arrivalDate) items.push({ label: 'ARRIVES', value: formatDateTime(pass.arrivalDate) });
+        if (pass.gateCloseTime) items.push({ label: 'GATE CLOSES', value: `${pass.gateCloseTime} min before departure` });
+        return items.slice(0, 4);
+    }
+
+    function routeText(pass) {
+        return pass.from && pass.to ? `${pass.from} -> ${pass.to}` : '';
+    }
+
+    function timeSummary(pass) {
+        if (pass.boardingTime) return `Boarding ${formatDateTime(pass.boardingTime)}`;
+        if (pass.departureDate) return `Departs ${formatDateTime(pass.departureDate)}`;
+        return pass.flightDate || '';
+    }
+
+    function calendarDate(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function dateOnly(value) {
+        if (!value) return '';
+        const text = String(value);
+        if (/^\d{4}-\d{2}-\d{2}/.test(text)) return text.slice(0, 10);
+        const date = new Date(value);
+        return Number.isNaN(date.getTime()) ? text : calendarDate(date);
+    }
+
+    function formatDateTime(value) {
+        if (!value) return '';
+        const date = new Date(value);
+        if (Number.isNaN(date.getTime())) return String(value).replace('.000', '');
+        return date.toLocaleString([], {
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    }
+
+    function buildFilename(pass, format, imageStyle, index) {
+        const flight = slugify(pass.flightNumber || `flight_${index + 1}`);
+        const passenger = slugify(pass.passengerName || `passenger_${index + 1}`);
+        const suffix = imageStyle === 'wallet' ? 'wallet' : format;
+        return `boarding_pass_${flight}_${passenger}_${suffix}.png`;
+    }
+
+    function slugify(value) {
+        return String(value || '')
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, '_')
+            .replace(/^_+|_+$/g, '') || 'boarding_pass';
+    }
+
+    function downloadCanvas(index) {
+        const item = generatedCanvases[index];
+        if (!item) return;
+        const link = document.createElement('a');
+        link.download = item.filename;
+        link.href = item.canvas.toDataURL('image/png');
+        link.click();
+    }
+
+    function decodeBarcode() {
+        const passes = extractBoardingPasses(document.getElementById('bcbp-input').value);
+        if (!passes.length) {
+            showError('Paste one or more boarding pass records or BCBP strings first.');
+            return;
+        }
+
+        const text = passes.map((pass, index) => [
+            `Boarding Pass ${index + 1}`,
+            `Passenger: ${pass.passengerName}`,
+            `PNR: ${pass.pnr || '-'}`,
+            `Route: ${routeText(pass) || '-'}`,
+            `Flight: ${pass.flightNumber || '-'}`,
+            `Date: ${pass.flightDate || dateOnly(pass.departureDate) || '-'}`,
+            `Class: ${pass.className || '-'}`,
+            `Seat: ${pass.seat || '-'}`,
+            `Sequence: ${pass.sequence || '-'}`,
+            pass.boardingTime ? `Boarding: ${formatDateTime(pass.boardingTime)}` : '',
+            pass.departureDate ? `Departs: ${formatDateTime(pass.departureDate)}` : '',
+            pass.arrivalDate ? `Arrives: ${formatDateTime(pass.arrivalDate)}` : '',
+            pass.gateCloseTime ? `Gate closes: ${pass.gateCloseTime} min before departure` : '',
+        ].filter(Boolean).join('\n')).join('\n\n');
 
         const el = document.getElementById('decoded');
-        el.innerHTML = html;
+        el.textContent = text;
         el.style.display = 'block';
         document.getElementById('error-msg').style.display = 'none';
     }
 
-    document.querySelectorAll('input[name="format"]').forEach(r => {
+    document.querySelectorAll('input[name="format"], input[name="image-style"]').forEach(r => {
         r.addEventListener('change', () => {
             const input = document.getElementById('bcbp-input').value.trim();
             if (input) generateBarcode();
