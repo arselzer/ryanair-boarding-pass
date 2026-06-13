@@ -559,7 +559,8 @@
         const canvas = document.createElement('canvas');
         if (imageStyle === 'wallet') {
             canvas.className = 'wallet-canvas';
-            const codeCanvas = createCodeCanvas(pass.payload, format, 4);
+            const walletScale = format === 'qr' ? 12 : 10;
+            const codeCanvas = createCodeCanvas(pass.payload, format, walletScale);
             drawWalletCard(canvas, codeCanvas, pass, format);
         } else {
             drawCodeOnly(canvas, pass.payload, format);
@@ -596,7 +597,7 @@
 
     function drawWalletCard(canvas, codeCanvas, pass, format) {
         const width = 900;
-        const height = 1420;
+        const height = 1600;
         canvas.width = width;
         canvas.height = height;
         const ctx = canvas.getContext('2d');
@@ -606,54 +607,64 @@
         drawRoundedRect(ctx, 48, 40, width - 96, height - 80, 36, '#073069');
 
         ctx.fillStyle = '#ffc800';
-        ctx.fillRect(48, 210, width - 96, 8);
+        ctx.fillRect(48, 190, width - 96, 8);
 
         ctx.fillStyle = '#ffffff';
         ctx.font = '700 34px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-        ctx.fillText('RYANAIR', 88, 110);
+        ctx.fillText('RYANAIR', 88, 108);
         ctx.font = '600 24px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-        ctx.fillText(pass.flightNumber || 'BOARDING PASS', 88, 154);
+        ctx.fillText(pass.flightNumber || 'BOARDING PASS', 88, 150);
 
         ctx.textAlign = 'center';
-        ctx.font = '800 90px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-        fitText(ctx, pass.from || '---', 270, 315, 240);
-        fitText(ctx, pass.to || '---', 630, 315, 240);
-        ctx.font = '700 46px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
-        ctx.fillText('TO', 450, 305);
+        ctx.font = '800 86px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        fitText(ctx, pass.from || '---', 270, 295, 240);
+        fitText(ctx, pass.to || '---', 630, 295, 240);
+        ctx.font = '700 42px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText('TO', 450, 286);
 
         ctx.textAlign = 'left';
-        drawInfo(ctx, 'PASSENGER', pass.passengerName, 88, 405, 430);
-        drawInfo(ctx, 'SEAT', pass.seat || '-', 575, 405, 220);
-        drawInfo(ctx, 'DATE', pass.flightDate || dateOnly(pass.departureDate) || '-', 88, 515, 300);
-        drawInfo(ctx, 'SEQ', String(pass.sequence || '-'), 405, 515, 160);
-        drawInfo(ctx, 'PNR', pass.pnr || '-', 575, 515, 220);
+        drawCompactInfo(ctx, 'PASSENGER', pass.passengerName, 88, 375, 430);
+        drawCompactInfo(ctx, 'SEAT', pass.seat || '-', 575, 375, 220);
+        drawCompactInfo(ctx, 'DATE', pass.flightDate || dateOnly(pass.departureDate) || '-', 88, 468, 230);
+        drawCompactInfo(ctx, 'PNR', pass.pnr || '-', 360, 468, 170);
+        drawCompactInfo(ctx, 'SEQ', String(pass.sequence || '-'), 575, 468, 220);
 
-        const times = walletTimes(pass);
-        let y = 625;
-        times.forEach(item => {
-            drawInfo(ctx, item.label, item.value, 88, y, 700);
-            y += 96;
+        walletTimes(pass).forEach((item, index) => {
+            const column = index % 2;
+            const row = Math.floor(index / 2);
+            drawCompactInfo(ctx, item.label, item.value, column ? 485 : 88, 560 + row * 90, column ? 310 : 335);
         });
 
-        const panelTop = Math.max(820, y + 20);
-        const panelHeight = height - panelTop - 130;
-        drawRoundedRect(ctx, 88, panelTop, width - 176, panelHeight, 28, '#ffffff');
+        const panelTop = 760;
+        const panelHeight = height - panelTop - 120;
+        drawRoundedRect(ctx, 72, panelTop, width - 144, panelHeight, 32, '#ffffff');
 
-        const maxCodeWidth = width - 260;
-        const maxCodeHeight = panelHeight - 110;
-        const ratio = Math.min(maxCodeWidth / codeCanvas.width, maxCodeHeight / codeCanvas.height);
-        const drawWidth = codeCanvas.width * ratio;
-        const drawHeight = codeCanvas.height * ratio;
-        const x = (width - drawWidth) / 2;
-        const codeY = panelTop + 50 + (maxCodeHeight - drawHeight) / 2;
+        const maxCodeWidth = width - 190;
+        const maxCodeHeight = panelHeight - 100;
+        const ratio = Math.min(1, maxCodeWidth / codeCanvas.width, maxCodeHeight / codeCanvas.height);
+        const drawWidth = Math.floor(codeCanvas.width * ratio);
+        const drawHeight = Math.floor(codeCanvas.height * ratio);
+        const x = Math.floor((width - drawWidth) / 2);
+        const codeY = Math.floor(panelTop + 38 + (maxCodeHeight - drawHeight) / 2);
+        ctx.imageSmoothingEnabled = false;
         ctx.drawImage(codeCanvas, x, codeY, drawWidth, drawHeight);
+        ctx.imageSmoothingEnabled = true;
 
         ctx.fillStyle = '#073069';
         ctx.font = '700 22px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
         ctx.textAlign = 'center';
-        ctx.fillText(format === 'aztec' ? 'AZTEC BOARDING CODE' : 'QR BOARDING CODE', width / 2, panelTop + panelHeight - 34);
+        ctx.fillText(format === 'aztec' ? 'AZTEC BOARDING CODE' : 'QR BOARDING CODE', width / 2, panelTop + panelHeight - 38);
 
         ctx.textAlign = 'left';
+    }
+
+    function drawCompactInfo(ctx, label, value, x, y, maxWidth) {
+        ctx.fillStyle = '#ffc800';
+        ctx.font = '700 18px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        ctx.fillText(label, x, y);
+        ctx.fillStyle = '#ffffff';
+        ctx.font = '700 30px -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif';
+        fitText(ctx, value || '-', x, y + 38, maxWidth);
     }
 
     function drawInfo(ctx, label, value, x, y, maxWidth) {
